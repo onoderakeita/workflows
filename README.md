@@ -10,7 +10,7 @@ Rust リポジトリ向けの標準検証ゲート。ローカルの標準検証
 1. `cargo fmt --all -- --check`
 2. `cargo check --all-targets`（既定で `--locked`）
 3. `cargo test --all-targets`（既定で `--locked`）
-4. `cargo clippy --all-targets -- -D warnings`（既定で `--locked`）
+4. `cargo clippy --all-targets -- -D warnings`（既定で `--locked`、`clippy_args` を追記）
 5. `extra_gates`（呼び出し側が指定する追加ゲート）
 
 呼び出し例（Tauri アプリの想定）:
@@ -53,21 +53,28 @@ jobs:
 | `rust_toolchain` | string | `stable` | rustup のツールチェーン名 |
 | `wasm_targets` | string | `""` | `rustup target add` する対象（カンマ区切り） |
 | `extra_gates` | string | `""` | 固定ゲートの後に実行する追加コマンド |
+| `clippy_args` | string | `""` | clippy の `-D warnings` に追記する引数 |
+| `env_vars` | string | `""` | ゲート前に `$GITHUB_ENV` へ追加する環境変数 |
 | `working_directory` | string | `"."` | `Cargo.toml` のあるディレクトリ |
 | `locked` | boolean | `true` | 各 cargo ゲートに `--locked` を付ける |
 | `runner` | string | `ubuntu-24.04` | 実行するランナー |
 | `timeout_minutes` | number | `60` | ジョブのタイムアウト（分） |
 
+`clippy_args` は `-- -D warnings` の後ろに追記される
+（例: `-A clippy::module-inception`）。
+
 ### 運用メモ
 
 - 呼び出し側で `permissions: contents: read` と `concurrency` を設定する。
 - `Cargo.lock` をコミットしていないリポジトリは `locked: false` を指定する。
+- テスト用の環境変数は `env_vars` で渡す（呼び出し側の `env:` は再利用側へ
+  伝播しない）。
 - 参照はタグ `v1` にピン留めする。互換を保つ更新はタグを付け替え
   （`git tag -f v1 && git push -f origin v1`）、破壊的変更は `v2` を切る。
 - このリポジトリは private。他リポジトリから参照するには、Settings →
   Actions → General → Access で
   "Accessible from repositories owned by 'onoderakeita' user" を有効にする
   （設定済み。API: `PUT /repos/onoderakeita/workflows/actions/permissions/access`）。
-- `self-test.yml` が `fixtures/hello` に対して全ゲートを実行する回帰テストに
-  なる（push ごとに検証される）。
+- `self-test.yml` が `fixtures/` のクレートに対して回帰テストを実行する
+  （push ごとに検証される）。
 - 秘密情報は渡さない（`secrets` は使わず、入力は `with` のみ）。

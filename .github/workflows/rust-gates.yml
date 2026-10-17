@@ -30,6 +30,16 @@ on:
         required: false
         type: string
         default: ""
+      clippy_args:
+        description: "clippy の -D warnings に追記する引数（任意、例: -A clippy::module-inception）"
+        required: false
+        type: string
+        default: ""
+      env_vars:
+        description: "ゲート前に $GITHUB_ENV へ書き込む環境変数（KEY=VALUE を行区切り、任意）"
+        required: false
+        type: string
+        default: ""
       working_directory:
         description: "Cargo.toml のあるディレクトリ（既定はリポジトリ直下）"
         required: false
@@ -93,6 +103,14 @@ jobs:
       - name: ビルドキャッシュ
         uses: Swatinem/rust-cache@v2
 
+      - name: 環境変数（追加）
+        if: inputs.env_vars != ''
+        env:
+          ENV_VARS: ${{ inputs.env_vars }}
+        run: |
+          set -euo pipefail
+          printf '%s\n' "$ENV_VARS" | sed '/^$/d' >> "$GITHUB_ENV"
+
       - name: 整形（fmt）
         working-directory: ${{ inputs.working_directory }}
         run: cargo fmt --all -- --check
@@ -107,7 +125,9 @@ jobs:
 
       - name: lint（clippy）
         working-directory: ${{ inputs.working_directory }}
-        run: cargo clippy --all-targets $LOCKED_FLAG -- -D warnings
+        env:
+          CLIPPY_ARGS: ${{ inputs.clippy_args }}
+        run: cargo clippy --all-targets $LOCKED_FLAG -- -D warnings $CLIPPY_ARGS
 
       - name: 追加ゲート
         if: inputs.extra_gates != ''

@@ -1,5 +1,6 @@
 # 再利用可能ワークフロー rust-gates.yml 自体の回帰テスト。
-# fixtures/hello（依存なしの最小クレート）に対して全ゲートを実行する。
+# fixtures/hello で固定ゲート・apt・wasm・env_vars を、
+# fixtures/clippy-args で clippy_args を検証する。
 name: self-test
 
 on:
@@ -22,5 +23,14 @@ jobs:
       apt_packages: file
       wasm_targets: wasm32-unknown-unknown
       working_directory: fixtures/hello
+      env_vars: |
+        SELFTEST_ENV=ok
       extra_gates: |
+        test "$SELFTEST_ENV" = "ok"
         cargo check --target wasm32-unknown-unknown --locked
+
+  gates-clippy-args:
+    uses: ./.github/workflows/rust-gates.yml
+    with:
+      working_directory: fixtures/clippy-args
+      clippy_args: "-A clippy::needless_return"
