@@ -71,10 +71,9 @@ jobs:
   伝播しない）。
 - 参照はタグ `v1` にピン留めする。互換を保つ更新はタグを付け替え
   （`git tag -f v1 && git push -f origin v1`）、破壊的変更は `v2` を切る。
-- このリポジトリは private。他リポジトリから参照するには、Settings →
-  Actions → General → Access で
-  "Accessible from repositories owned by 'onoderakeita' user" を有効にする
-  （設定済み。API: `PUT /repos/onoderakeita/workflows/actions/permissions/access`）。
+- このリポジトリは public（2026-10-17 公開）。public・private を問わず
+  どのリポジトリからも参照できる（private 提供側で必要だった Access
+  設定は不要）。
 - `self-test.yml` が `fixtures/` のクレートに対して回帰テストを実行する
   （push ごとに検証される）。
 - 秘密情報は渡さない（`secrets` は使わず、入力は `with` のみ）。
