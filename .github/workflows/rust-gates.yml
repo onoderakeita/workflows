@@ -1,0 +1,117 @@
+# 個人リポジトリ共通の再利用可能ワークフロー（Rust 検証ゲート）。
+#
+# ローカルの標準検証ループと同じ順序で実行する:
+#   fmt → check → test → clippy → 追加ゲート
+# 呼び出し側からは次のように参照する:
+#   uses: onoderakeita/workflows/.github/workflows/rust-gates.yml@v1
+# 入力の一覧は README.md を参照。
+name: Rust gates
+
+on:
+  workflow_call:
+    inputs:
+      apt_packages:
+        description: "apt で追加導入するパッケージ（空白・改行区切り、任意）"
+        required: false
+        type: string
+        default: ""
+      rust_toolchain:
+        description: "rustup のツールチェーン名"
+        required: false
+        type: string
+        default: stable
+      wasm_targets:
+        description: "rustup target add する対象（カンマ区切り、任意）"
+        required: false
+        type: string
+        default: ""
+      extra_gates:
+        description: "固定ゲートの後に実行する追加コマンド（改行区切り、任意）"
+        required: false
+        type: string
+        default: ""
+      working_directory:
+        description: "Cargo.toml のあるディレクトリ（既定はリポジトリ直下）"
+        required: false
+        type: string
+        default: "."
+      locked:
+        description: "Cargo.lock を書き換えないよう --locked を付ける"
+        required: false
+        type: boolean
+        default: true
+      runner:
+        description: "実行するランナー"
+        required: false
+        type: string
+        default: ubuntu-24.04
+      timeout_minutes:
+        description: "ジョブのタイムアウト（分）"
+        required: false
+        type: number
+        default: 60
+
+jobs:
+  gates:
+    runs-on: ${{ inputs.runner }}
+    timeout-minutes: ${{ inputs.timeout_minutes }}
+    permissions:
+      contents: read
+    env:
+      CARGO_TERM_COLOR: always
+      LOCKED_FLAG: "${{ inputs.locked && '--locked' || '' }}"
+    steps:
+      - name: チェックアウト
+        uses: actions/checkout@v7
+
+      - name: 追加の apt パッケージ
+        if: inputs.apt_packages != ''
+        env:
+          APT_PACKAGES: ${{ inputs.apt_packages }}
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          echo "$APT_PACKAGES" | xargs sudo apt-get install -y --no-install-recommends
+
+      - name: Rust ツールチェーン
+        run: |
+          set -euo pipefail
+          rustup toolchain install "${{ inputs.rust_toolchain }}" --profile minimal \
+            --component rustfmt --component clippy
+          rustup default "${{ inputs.rust_toolchain }}"
+
+      - name: 追加ターゲット（wasm32 等）
+        if: inputs.wasm_targets != ''
+        env:
+          TARGETS: ${{ inputs.wasm_targets }}
+        run: |
+          set -euo pipefail
+          for target in ${TARGETS//,/ }; do
+            rustup target add "$target"
+          done
+
+      - name: ビルドキャッシュ
+        uses: Swatinem/rust-cache@v2
+
+      - name: 整形（fmt）
+        working-directory: ${{ inputs.working_directory }}
+        run: cargo fmt --all -- --check
+
+      - name: 型チェック（check）
+        working-directory: ${{ inputs.working_directory }}
+        run: cargo check --all-targets $LOCKED_FLAG
+
+      - name: テスト（test）
+        working-directory: ${{ inputs.working_directory }}
+        run: cargo test --all-targets $LOCKED_FLAG
+
+      - name: lint（clippy）
+        working-directory: ${{ inputs.working_directory }}
+        run: cargo clippy --all-targets $LOCKED_FLAG -- -D warnings
+
+      - name: 追加ゲート
+        if: inputs.extra_gates != ''
+        working-directory: ${{ inputs.working_directory }}
+        run: |
+          set -euo pipefail
+          ${{ inputs.extra_gates }}
