@@ -1,7 +1,7 @@
 # 個人リポジトリ共通の再利用可能ワークフロー（Rust 検証ゲート）。
 #
 # ローカルの標準検証ループと同じ順序で実行する:
-#   fmt → check → test → clippy → 追加ゲート
+#   fmt → check → test → clippy → 監査（任意）→ 追加ゲート
 # 呼び出し側からは次のように参照する:
 #   uses: onoderakeita/workflows/.github/workflows/rust-gates.yml@v1
 # 入力の一覧は README.md を参照。
@@ -50,6 +50,11 @@ on:
         required: false
         type: boolean
         default: true
+      audit:
+        description: "cargo audit による依存関係監査を実行する（任意）"
+        required: false
+        type: boolean
+        default: false
       runner:
         description: "実行するランナー"
         required: false
@@ -128,6 +133,17 @@ jobs:
         env:
           CLIPPY_ARGS: ${{ inputs.clippy_args }}
         run: cargo clippy --all-targets $LOCKED_FLAG -- -D warnings $CLIPPY_ARGS
+
+      - name: 監査ツール（cargo-audit）の導入
+        if: inputs.audit
+        uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-audit
+
+      - name: 依存監査（cargo audit）
+        if: inputs.audit
+        working-directory: ${{ inputs.working_directory }}
+        run: cargo audit
 
       - name: 追加ゲート
         if: inputs.extra_gates != ''

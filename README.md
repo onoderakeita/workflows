@@ -11,7 +11,8 @@ Rust リポジトリ向けの標準検証ゲート。ローカルの標準検証
 2. `cargo check --all-targets`（既定で `--locked`）
 3. `cargo test --all-targets`（既定で `--locked`）
 4. `cargo clippy --all-targets -- -D warnings`（既定で `--locked`、`clippy_args` を追記）
-5. `extra_gates`（呼び出し側が指定する追加ゲート）
+5. `cargo audit`（任意。`audit: true` のとき）
+6. `extra_gates`（呼び出し側が指定する追加ゲート）
 
 呼び出し例（Tauri アプリの想定）:
 
@@ -57,6 +58,7 @@ jobs:
 | `env_vars` | string | `""` | ゲート前に `$GITHUB_ENV` へ追加する環境変数 |
 | `working_directory` | string | `"."` | `Cargo.toml` のあるディレクトリ |
 | `locked` | boolean | `true` | 各 cargo ゲートに `--locked` を付ける |
+| `audit` | boolean | `false` | `cargo audit` による依存関係監査を実行する |
 | `runner` | string | `ubuntu-24.04` | 実行するランナー |
 | `timeout_minutes` | number | `60` | ジョブのタイムアウト（分） |
 
@@ -74,6 +76,11 @@ jobs:
 - このリポジトリは public（2026-10-17 公開）。public・private を問わず
   どのリポジトリからも参照できる（private 提供側で必要だった Access
   設定は不要）。
+- 監査ゲートは `audit: true` で有効化する。脆弱性検出時に失敗し、
+  unmaintained 等の warning は既定では失敗しない。ignore は各
+  リポジトリの `.cargo/audit.toml` で管理する。`--deny warnings` に
+  したい場合は `extra_gates` に `cargo audit --deny warnings` を
+  追加する。
 - `self-test.yml` が `fixtures/` のクレートに対して回帰テストを実行する
   （push ごとに検証される）。
 - 秘密情報は渡さない（`secrets` は使わず、入力は `with` のみ）。

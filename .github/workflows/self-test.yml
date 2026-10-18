@@ -1,5 +1,5 @@
 # 再利用可能ワークフロー rust-gates.yml 自体の回帰テスト。
-# fixtures/hello で固定ゲート・apt・wasm・env_vars を、
+# fixtures/hello で固定ゲート・apt・wasm・env_vars・audit を、
 # fixtures/clippy-args で clippy_args を検証する。
 name: self-test
 
@@ -34,3 +34,9 @@ jobs:
     with:
       working_directory: fixtures/clippy-args
       clippy_args: "-A clippy::needless_return"
+
+  gates-audit:
+    uses: ./.github/workflows/rust-gates.yml
+    with:
+      working_directory: fixtures/hello
+      audit: true
