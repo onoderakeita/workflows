@@ -83,4 +83,10 @@ jobs:
   追加する。
 - `self-test.yml` が `fixtures/` のクレートに対して回帰テストを実行する
   （push ごとに検証される）。
+- Tauri と `rumdl`（`tikv-jemalloc-sys`）を含むビルドが既定のランナー
+  ディスクを超えるため、ジョブ冒頭で Rust ゲートに不要な同梱物
+  （`/usr/share/dotnet`・`/usr/local/lib/android`・`/opt/ghc`）を削除する。
+- 呼び出し側でさらに容量が必要なら、`env_vars` に
+  `CARGO_PROFILE_DEV_DEBUG=0`・`CARGO_PROFILE_TEST_DEBUG=0`・
+  `CARGO_INCREMENTAL=0` を渡す。
 - 秘密情報は渡さない（`secrets` は使わず、入力は `with` のみ）。

@@ -79,6 +79,15 @@ jobs:
       - name: チェックアウト
         uses: actions/checkout@v7
 
+      # Tauri と rumdl (tikv-jemalloc-sys) のビルドで既定のランナー
+      # ディスクを使い切るため、Rust ゲートに不要な同梱物を先に消す。
+      - name: ディスクを空ける
+        run: |
+          set -euo pipefail
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL
+          sudo apt-get clean
+          df -h
+
       - name: 追加の apt パッケージ
         if: inputs.apt_packages != ''
         env:
